@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sydni Smiles Donation Calculator (Demo)</title>
+
+  <!--
+    SECURITY NOTE:
+    - This is a demo-safe version for GitHub.
+    - It intentionally does NOT include live PayPal client IDs or private Google Sheet links.
+    - To enable live integrations later, set the placeholders in the CONFIG section below.
+  -->
+
+  <style>
+    body { font-family: "Nunito", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+    .donation-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      gap: 30px;
+      padding: 20px;
+      align-items: flex-start;
+    }
+
+    .left-panel {
+      flex: 1;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .right-panel {
+      width: 380px;
+      text-align: center;
+    }
+
+    .testimonial-img {
+      width: 100%;
+      max-width: 380px;
+      border-radius: 12px;
+    }
+
+    .testimonial-text {
+      margin-top: 12px;
+      color: #444;
+      font-size: 1rem;
+      line-height: 1.4rem;
+      padding: 0 8px;
+    }
+
+    input {
+      padding: 10px;
+      width: 220px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    #calculateImpactBtn {
+      background: #4a90e2;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #calculateImpactBtn:hover { background: #357ABD; }
+
+    #impactOutput {
+      margin-top: 20px;
+      background: #e8f4ff;
+      padding: 18px;
+      border-radius: 10px;
+      text-align: left;
+    }
+
+    .step-box {
+      background: #eef6ff;
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 18px;
+      margin-bottom: 18px;
+      text-align: left;
+    }
+
+    #rotatingImpactText {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #2b5c8a;
+    }
+
+    .progress-label { font-weight: bold; margin-bottom: 6px; }
+
+    .progress-bar {
+      background: #ddd;
+      height: 25px;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .progress {
+      height: 100%;
+      background: #4caf50;
+      width: 0;
+      color: white;
+      text-align: center;
+      line-height: 25px;
+      font-weight: bold;
+      transition: width 2s ease;
+      padding: 0 10px;
+      box-sizing: border-box;
+      white-space: nowrap;
+    }
+
+    .small-note {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      color: #555;
+      line-height: 1.35rem;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f2f2f2;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 860px) {
+      .donation-wrapper { flex-direction: column; align-items: center; }
+      .right-panel { width: 100%; max-width: 420px; }
+      .left-panel { width: 100%; }
+      input { width: 100%; margin-right: 0; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="donation-wrapper">
+
+    <div class="left-panel">
+      <h2>Make an Impact Today</h2>
+      <p>Enter an amount and see everything your donation can do 💙</p>
+
+      <input type="number" id="donationAmount" placeholder="Enter donation $" min="1">
+      <button id="calculateImpactBtn">Calculate Impact</button>
+
+      <div id="impactOutput"></div>
+
+      <div class="step-box">
+        <strong>Step 1:</strong> Enter a donation amount and click "Calculate Impact".<br><br>
+        <strong>Step 2:</strong> (Demo) Payment button is disabled in the public GitHub version.
+      </div>
+
+      <div class="step-box">
+        <h3>What Your Donation Does</h3>
+        <p id="rotatingImpactText"></p>
+      </div>
+
+      <div>
+        <div id="goalLabel" class="progress-label"></div>
+        <div class="progress-bar"><div id="progress" class="progress">0%</div></div>
+        <div id="dataMode" class="pill"></div>
+      </div>
+
+      <!-- PayPal container kept for layout consistency -->
+      <div id="paypal-button-container" style="margin-top: 20px;"></div>
+
+      <p class="small-note">
+        Portfolio/demo build: live PayPal + live spreadsheet integrations are intentionally removed.
+        You can enable them later by filling in the CONFIG values in the script.
+      </p>
+    </div>
+
+    <div class="right-panel">
+      <img id="testimonialImage" class="testimonial-img" alt="Testimonial" />
+      <p id="testimonialQuote" class="testimonial-text"></p>
+    </div>
+
+  </div>
+
+  <!-- Confetti (safe to keep) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    /* ==========================================
+        CONFIG (SAFE DEFAULTS FOR GITHUB)
+       ========================================== */
+
+    // Leave this empty for GitHub/demo. If you want to enable PayPal later,
+    // set it to your PayPal *client ID* (publishable) and optionally choose currency.
+    const PAYPAL_CLIENT_ID = ""; // e.g. "YOUR_CLIENT_ID_HERE"
+    const PAYPAL_CURRENCY = "USD";
+
+    // Leave this empty for GitHub/demo. If you want live data later, set to a CSV export URL.
+    // Example format (DO NOT paste your live link into public GitHub unless you’re okay with it being public):
+    // https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&gid=<GID>
+    const SHEET_CSV_URL = "";
+
+    // Demo fallback data (used if SHEET_CSV_URL is blank or fails)
+    const DEMO_DATA = {
+      Month: "This Month",
+      Goal: 5000,
+      Raised: 2150,
+      Donation_testimonial_image: "https://via.placeholder.com/760x520?text=Testimonial+Image",
+      Testimonial_Quote: "“This program changed our lives — thank you for making it possible.”"
+    };
+
+
+    /* ==========================================
+        DATA LOADING (LIVE OR DEMO)
+       ========================================== */
+    let goal = 0, raised = 0;
+
+    function applyData(data, modeLabel) {
+      goal = Number(data.Goal) || 0;
+      raised = Number(data.Raised) || 0;
+
+      document.getElementById("goalLabel").innerText =
+        `${data.Month || "Campaign"} Goal: $${goal.toLocaleString()}`;
+
+      document.getElementById("testimonialImage").src =
+        data.Donation_testimonial_image || DEMO_DATA.Donation_testimonial_image;
+
+      document.getElementById("testimonialQuote").innerText =
+        data.Testimonial_Quote || DEMO_DATA.Testimonial_Quote;
+
+      document.getElementById("dataMode").innerText = modeLabel;
+
+      animateProgressBar();
+    }
+
+    async function loadSheetData() {
+      if (!SHEET_CSV_URL) {
+        applyData(DEMO_DATA, "Using demo data");
+        return;
+      }
+
+      try {
+        const resp = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+        const text = await resp.text();
+
+        const rows = text.trim().split("\n").map(r => r.split(","));
+        const header = rows[0];
+        const values = rows[1];
+
+        const data = {};
+        header.forEach((h, i) => data[h.trim()] = (values[i] || "").trim());
+
+        applyData(data, "Using live sheet data");
+      } catch (err) {
+        console.error("Sheet error:", err);
+        applyData(DEMO_DATA, "Using demo data (sheet failed)");
+      }
+    }
+
+
+    /* ==========================================
+        IMPACT BREAKDOWN
+       ========================================== */
+    function calculateImpact() {
+      const amount = parseFloat(document.getElementById("donationAmount").value);
+      if (!amount || amount <= 0) {
+        document.getElementById("impactOutput").innerHTML = "Please enter a valid donation amount.";
+        return;
+      }
+
+      let html = `<strong>With a donation of $${amount.toFixed(2)}, you help with:</strong><ul>`;
+
+      if (amount >= 10) html += "<li>Helps cover shipping or small backpack modifications.</li>";
+      if (amount >= 20) html += "<li>Funds one backpack for a child.</li>";
+      if (amount >= 40) html += "<li>Funds one toddler-sized backpack.</li>";
+      if (amount >= 50) html += "<li>Funds a full backpack package (bag, clips, fittings).</li>";
+      if (amount >= 75) html += "<li>Sponsors a toddler backpack for a child.</li>";
+      if (amount >= 100) html += "<li>Sponsors 2 full backpacks.</li>";
+      if (amount >= 200) html += "<li>Provides 5 toddler backpacks.</li>";
+      if (amount >= 500) html += "<li>Helps resupply a partner children's hospital.</li>";
+      if (amount >= 1000) html += "<li>Partners with a new hospital.</li>";
+
+      html += "</ul>";
+      document.getElementById("impactOutput").innerHTML = html;
+    }
+
+    document.getElementById("calculateImpactBtn").addEventListener("click", calculateImpact);
+
+
+    /* ==========================================
+        ROTATING IMPACT MESSAGES
+       ========================================== */
+    const impactMessages = [
+      "$10 = Covers modifications or shipping 👜",
+      "$20 = Purchases a backpack 🎒",
+      "$40 = Purchases a toddler backpack 👶🎒",
+      "$50 = Full backpack package 💙",
+      "$75 = Toddler backpack sponsorship 👶",
+      "$100 = Sponsors 2 backpacks 🎒🎒",
+      "$200 = Purchases 5 toddler backpacks 👶👶👶👶👶",
+      "$500 = Helps resupply a children's hospital 🏥",
+      "$1000 = Partners with a new hospital ❤️"
+    ];
+
+    let impactIndex = 0;
+    function rotateImpact() {
+      document.getElementById("rotatingImpactText").innerText = impactMessages[impactIndex];
+      impactIndex = (impactIndex + 1) % impactMessages.length;
+    }
+    rotateImpact();
+    setInterval(rotateImpact, 3000);
+
+
+    /* ==========================================
+        PROGRESS BAR
+       ========================================== */
+    function animateProgressBar() {
+      const safeGoal = goal > 0 ? goal : 1;
+      const percent = Math.min((raised / safeGoal) * 100, 100);
+      const el = document.getElementById("progress");
+
+      el.style.width = percent + "%";
+      el.innerText = `$${raised.toLocaleString()} / $${goal.toLocaleString()}`;
+    }
+
+
+    /* ==========================================
+        PAYPAL (DISABLED BY DEFAULT FOR GITHUB)
+       ========================================== */
+    function disablePaypalUI() {
+      const c = document.getElementById("paypal-button-container");
+      c.innerHTML = `
+        <div class="step-box" style="margin-top:0;">
+          <strong>Payment disabled (demo).</strong><br>
+          To enable PayPal, set <code>PAYPAL_CLIENT_ID</code> in the script.
+        </div>
+      `;
+    }
+
+    function loadPaypalSDK() {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}&components=buttons&currency=${encodeURIComponent(PAYPAL_CURRENCY)}`;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function initPaypal() {
+      if (!PAYPAL_CLIENT_ID) {
+        disablePaypalUI();
+        return;
+      }
+
+      try {
+        await loadPaypalSDK();
+
+        // eslint-disable-next-line no-undef
+        paypal.Buttons({
+          createOrder(data, actions) {
+            const amount = document.getElementById("donationAmount").value || "10";
+            return actions.order.create({ purchase_units: [{ amount: { value: amount } }] });
+          },
+          onApprove(data, actions) {
+            return actions.order.capture().then(details => {
+              confetti({ particleCount: 200, spread: 70 });
+              document.getElementById("impactOutput").innerHTML =
+                `🎉 Thank you, ${details.payer.name.given_name}! Your donation was successful.`;
+            });
+          }
+        }).render("#paypal-button-container");
+
+      } catch (e) {
+        console.error("PayPal load error:", e);
+        disablePaypalUI();
+      }
+    }
+
+
+    // Init
+    loadSheetData();
+    initPaypal();
+  </script>
+</body>
+</html>

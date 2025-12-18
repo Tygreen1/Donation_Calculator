@@ -1,3 +1,5 @@
+![Donation Calculator Screenshot](DonatioCalc.PNG)
+
 # Donation Calculator
 
 An interactive donation calculator designed to help nonprofit organizations clearly communicate the real-world impact of donations. This project focuses on user experience, transparency, and engagement to encourage meaningful contributions.

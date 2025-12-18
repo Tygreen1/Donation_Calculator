@@ -15,7 +15,8 @@ An interactive donation calculator designed to help nonprofit organizations clea
 - JavaScript
 
 ## Live Demo
-This repo can be deployed with GitHub Pages once the static demo files are added.
+Live version (GitHub Pages):  
+https://tygreen1.github.io/Donation_Calculator/
 
 ## Security & Privacy
 This repository is intended for portfolio/demo use.
